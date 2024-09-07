@@ -8,12 +8,15 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       const map = L.map('map').setView([40.7128, -74.0060], 10); // creating the map 
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(map); // creating the tile layer
+
+      //tile layer
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>'
+      }).addTo(map);
+      
 
       return () => {
-        map.remove(); //cleanup
+        map.remove(); // cleanup
       };
     }
   }, []); 

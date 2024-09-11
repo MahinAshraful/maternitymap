@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 import Papa from 'papaparse';
 
 export default function Home() {
@@ -9,6 +10,9 @@ export default function Home() {
   const [data, setData] = useState([]); // To store all hospital data
   const [filteredData, setFilteredData] = useState([]); // To store filtered hospital data
   const [zipCode, setZipCode] = useState(''); // Store user input zip code
+  const [userLocationMarker, setUserLocationMarker] = useState(null);
+  const [userLocation, setUserLocation] = useState(null); // To store user's current location
+  const [routingControl, setRoutingControl] = useState(null); // To store routing control
 
   // Load CSV file on mount
   useEffect(() => {
@@ -36,6 +40,27 @@ export default function Home() {
 
       setMap(newMap);
 
+
+    // Inside the useEffect for map and user location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation([latitude, longitude]);
+
+        const customIcon = L.icon({
+          iconUrl: './currentLocation.png',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32],
+        });
+
+        const marker = L.marker([latitude, longitude], { icon: customIcon });
+        marker.addTo(newMap)
+          .bindPopup('Your Location');
+        setUserLocationMarker(marker);
+      });
+    }
+
       return () => {
         newMap.remove();
       };
@@ -47,7 +72,7 @@ export default function Home() {
     if (map && filteredData.length > 0) {
       // Clear existing markers
       map.eachLayer((layer) => {
-        if (layer instanceof L.Marker) {
+        if (layer instanceof L.Marker && layer !== userLocationMarker) {
           map.removeLayer(layer);
         }
       });

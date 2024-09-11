@@ -5,6 +5,12 @@ import 'leaflet/dist/leaflet.css';
 
 export default function Home() {
   const [map, setMap] = useState(null);
+  const [zipcode, setZipcode] = useState('');
+
+  const handleSubmit = () => {
+    console.log('ZIP Code:', zipcode);
+    setZipcode('');
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -58,13 +64,23 @@ export default function Home() {
         </div>
 
         <div className="mb-12">
-          <h2 className="mb-4 text-3xl font-bold text-gray-900">Find the closest Hospital</h2>
-          <input
-            type="text"
-            placeholder="Search here"
-            className="w-full p-3 text-black border border-gray-300 rounded-md"
-          />
-        </div>
+      <h2 className="mb-4 text-3xl font-bold text-gray-900">Find the Closest Hospital</h2>
+      <div className="flex">
+        <input
+          type="text"
+          placeholder="Enter your ZIP Code"
+          className="flex-grow w-full p-3 text-black border border-gray-300 rounded-l-md"
+          value={zipcode}
+          onChange={(e) => setZipcode(e.target.value)}
+        />
+        <button
+          onClick={handleSubmit}
+          className="p-3 text-white bg-blue-500 rounded-r-md"
+        >
+          Submit
+        </button>
+      </div>
+    </div>
 
         <div className="mb-12 overflow-hidden bg-white rounded-lg shadow-lg">
           <h3 className="p-4 text-xl font-semibold bg-gray-100">Maternity Map</h3>

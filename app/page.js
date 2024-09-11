@@ -2,23 +2,37 @@
 import React, { useEffect, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import Papa from 'papaparse';
 
 export default function Home() {
   const [map, setMap] = useState(null);
-  const [zipcode, setZipcode] = useState('');
+  const [data, setData] = useState([]); // To store all hospital data
+  const [filteredData, setFilteredData] = useState([]); // To store filtered hospital data
+  const [zipCode, setZipCode] = useState(''); // Store user input zip code
 
-  const handleSubmit = () => {
-    console.log('ZIP Code:', zipcode);
-    setZipcode('');
-  };
+  // Load CSV file on mount
+  useEffect(() => {
+    Papa.parse('Hospitals.csv', {
+      download: true,
+      header: true,
+      complete: (result) => {
+        console.log('CSV Data:', result.data);
+        setData(result.data); 
+      },
+      error: (error) => {
+        console.error('Error fetching CSV:', error); 
+      }
+    });
+  }, []);
 
+  // Load the map
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const newMap = L.map('map').setView([40.7128, -74.0060], 10); // NYC
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>'
-      }).addTo(newMap); // this is the syle i went for [grey]
+      }).addTo(newMap);
 
       setMap(newMap);
 
@@ -28,26 +42,51 @@ export default function Home() {
     }
   }, []);
 
+  // Add markers to the map when filtered data changes
   useEffect(() => {
-    if (map) {
-      //testing
-      const hospitalLocation = [[40.6084, -73.9574]];
-      
-      // creating a customized icon
-      const customIcon = L.icon({
-        iconUrl: './hospitalmarker.png',
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
-        popupAnchor: [0, -32] 
+    if (map && filteredData.length > 0) {
+      // Clear existing markers
+      map.eachLayer((layer) => {
+        if (layer instanceof L.Marker) {
+          map.removeLayer(layer);
+        }
       });
 
-      // now ima add the marker
-      L.marker(hospitalLocation[0], { icon: customIcon })
-        .addTo(map)
-        .bindPopup("2525 Kings Highway Hospital")
+      filteredData.forEach((location) => {
+        const { 'lat': latitude, 'long': longitude, 'ZIP Code': zip, 'Facility Name': name } = location;
 
+        const customIcon = L.icon({
+          iconUrl: './hospitalmarker.png', // Your custom marker icon
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32],
+        });
+
+        L.marker([latitude, longitude], { icon: customIcon })
+          .addTo(map)
+          .bindPopup(`ZIP Code: ${zip}<br>Name: ${name}`);
+      });
     }
-  }, [map]);
+  }, [map, filteredData]);
+
+  // Function to get the range of zip codes
+  const getNearbyZipCodes = (zip) => {
+    const startZip = Number(zip) - 100;
+    const endZip = Number(zip) + 100;
+    const zipRange = [];
+    for (let i = startZip; i <= endZip; i++) {
+      zipRange.push(i.toString());
+    }
+    return zipRange;
+  };
+
+  const handleSearch = () => {
+    const zipRange = getNearbyZipCodes(zipCode);
+    const filtered = data.filter((entry) => {
+      return zipRange.includes(entry['ZIP Code']);
+    });
+    setFilteredData(filtered);
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -64,23 +103,21 @@ export default function Home() {
         </div>
 
         <div className="mb-12">
-      <h2 className="mb-4 text-3xl font-bold text-gray-900">Find the Closest Hospital</h2>
-      <div className="flex">
-        <input
-          type="text"
-          placeholder="Enter your ZIP Code"
-          className="flex-grow w-full p-3 text-black border border-gray-300 rounded-l-md"
-          value={zipcode}
-          onChange={(e) => setZipcode(e.target.value)}
-        />
-        <button
-          onClick={handleSubmit}
-          className="p-3 text-white bg-blue-500 rounded-r-md"
-        >
-          Submit
-        </button>
-      </div>
-    </div>
+          <h2 className="mb-4 text-3xl font-bold text-gray-900">Find the closest Hospital</h2>
+          <input
+            type="text"
+            placeholder="Enter a ZIP Code"
+            value={zipCode}
+            onChange={(e) => setZipCode(e.target.value)}
+            className="w-full p-3 text-black border border-gray-300 rounded-md"
+          />
+          <button
+            onClick={handleSearch}
+            className="mt-4 w-full p-3 bg-blue-600 text-white rounded-md"
+          >
+            Search
+          </button>
+        </div>
 
         <div className="mb-12 overflow-hidden bg-white rounded-lg shadow-lg">
           <h3 className="p-4 text-xl font-semibold bg-gray-100">Maternity Map</h3>

@@ -25,7 +25,7 @@ export default function Home() {
   useEffect(() => {
     if (map) {
       //testing
-      const hospitalLocation = [40.6084, -73.9574];
+      const hospitalLocation = [[40.6084, -73.9574]];
       
       // creating a customized icon
       const customIcon = L.icon({
@@ -36,7 +36,7 @@ export default function Home() {
       });
 
       // now ima add the marker
-      L.marker(hospitalLocation, { icon: customIcon })
+      L.marker(hospitalLocation[0], { icon: customIcon })
         .addTo(map)
         .bindPopup("2525 Kings Highway Hospital")
 

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
+import 'leaflet-routing-machine';
 import Papa from 'papaparse';
 
 export default function Home() {
@@ -15,54 +16,51 @@ export default function Home() {
   const [routingControl, setRoutingControl] = useState(null); // To store routing control
 
   // Load CSV file on mount
-  useEffect(() => {
-    Papa.parse('Hospitals.csv', {
-      download: true,
-      header: true,
-      complete: (result) => {
-        console.log('CSV Data:', result.data);
-        setData(result.data); 
-      },
-      error: (error) => {
-        console.error('Error fetching CSV:', error); 
-      }
-    });
-  }, []);
+  Papa.parse('Hospitals.csv', {
+    download: true,
+    header: true,
+    complete: (result) => {
+      setData(result.data); 
+    },
+    error: (error) => {
+      console.error('Error fetching CSV:', error); 
+    }
+  });
 
   // Load the map
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const newMap = L.map('map').setView([40.7128, -74.0060], 10); // NYC
+  if (typeof window !== 'undefined') {
+    const newMap = L.map('map').setView([40.7128, -74.0060], 10); // NYC
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>'
-      }).addTo(newMap);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }).addTo(newMap);
 
-      setMap(newMap);
-
-
+    setMap(newMap);
+    
     // Inside the useEffect for map and user location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const { latitude, longitude } = position.coords;
-        setUserLocation([latitude, longitude]);
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation([latitude, longitude]);
 
-        const customIcon = L.icon({
-          iconUrl: './currentLocation.png',
-          iconSize: [32, 32],
-          iconAnchor: [16, 32],
-          popupAnchor: [0, -32],
+          const customIcon = L.icon({
+            iconUrl: './currentLocation.png',
+            iconSize: [32, 32],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -32],
+          });
+
+          const marker = L.marker([latitude, longitude], { icon: customIcon });
+          marker.addTo(newMap)
+            .bindPopup('Your Location');
+          setUserLocationMarker(marker);
         });
-
-        const marker = L.marker([latitude, longitude], { icon: customIcon });
-        marker.addTo(newMap)
-          .bindPopup('Your Location');
-        setUserLocationMarker(marker);
-      });
-    }
+      }
 
       return () => {
         newMap.remove();
+        setMap(null);
       };
     }
   }, []);
@@ -89,10 +87,27 @@ export default function Home() {
 
         L.marker([latitude, longitude], { icon: customIcon })
           .addTo(map)
-          .bindPopup(`ZIP Code: ${zip}<br>Name: ${name}`);
+          .bindPopup(name)
+          .on('click', () => {
+            if (userLocation) {
+              if (routingControl) {
+                routingControl.remove();
+              }
+
+              const route = L.Routing.control({
+                waypoints: [
+                  L.latLng(userLocation),
+                  L.latLng(latitude, longitude)
+                ],
+                createMarker: () => null // Remove default markers
+              }).addTo(map);
+
+              setRoutingControl(route);
+            }
+          }); 
       });
     }
-  }, [map, filteredData]);
+  }, [map, filteredData, userLocation]);
 
   // Function to get the range of zip codes
   const getNearbyZipCodes = (zip) => {
@@ -117,14 +132,14 @@ export default function Home() {
     <div className="min-h-screen bg-white">
       <header className="px-4 py-4 bg-white border-b border-gray-200 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mx-auto max-w-7xl">
-          <div className="text-[#0000FF] font-bold text-2xl">Maternity Map</div>
+          <div className="text-[#0000FF] font-bold text-2xl">Care Route</div>
         </div>
       </header>
 
       <main className="px-4 py-12 mx-auto max-w-7xl sm:px-6 lg:px-8">
         <div className="bg-[#0000FF] text-white p-8 rounded-lg mb-12">
-          <h1 className="mb-4 text-4xl font-bold">Join us in the pursuit to change patient's lives.</h1>
-          <p className="text-xl">Each and every person in a clinical trial plays a powerful role.</p>
+          <h1 className="mb-4 text-4xl font-bold">Are you an expecting mother who wants to know the options?</h1>
+          <p className="text-xl">We're here to show you</p>
         </div>
 
         <div className="mb-12">
@@ -145,8 +160,7 @@ export default function Home() {
         </div>
 
         <div className="mb-12 overflow-hidden bg-white rounded-lg shadow-lg">
-          <h3 className="p-4 text-xl font-semibold bg-gray-100">Maternity Map</h3>
-          <div id="map" className="h-[400px] w-full"></div>
+          <div id="map" className="h-[400px] w-full" style={{color : "black"}}></div>
         </div>
       </main>
     </div>
